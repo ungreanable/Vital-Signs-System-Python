@@ -12,5 +12,5 @@ Mr.Jukkrit Nunyot
 pip install pyrebase
 ```
 ```python
-pip install paho.mqtt
+pip install paho-mqtt
 ```
