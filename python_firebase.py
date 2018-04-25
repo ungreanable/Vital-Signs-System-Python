@@ -4,6 +4,7 @@ import pyrebase
 import threading
 import sys
 import paho.mqtt.client as mqtt
+import time
 from random import randrange, uniform
 
 config = {
@@ -77,10 +78,24 @@ def monitorMQTT():
 
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
-print("========= Version : Beta =========")
+client.connect("broker.hivemq.com", 1883, 60)
+
+print("=========== Version : Beta ===========")
 print("Smart eHealth System is running...")
 monitorFirebase()
 print("Firebase Monitor is running...")
+client.loop_start()
 monitorMQTT()
 print("MQTT Monitor is running...")
-client.connect("broker.hivemq.com", 1883, 60)
+print("======================================")
+loading = True  # a simple var to keep the loading status
+loading_speed = 4  # number of characters to print out per second
+loading_string = "." * 6  # characters to print out one by one (6 dots in this example)
+while loading:
+    for index, char in enumerate(loading_string):
+        sys.stdout.write(char)  # write the next char to STDOUT
+        sys.stdout.flush()  # flush the output
+        time.sleep(1.0 / loading_speed)  # wait to match our speed
+    index += 1  # lists are zero indexed, we need to increase by one for the accurate count
+    sys.stdout.write("\b" * index + " " * index + "\b" * index)
+    sys.stdout.flush()  # flush the output
