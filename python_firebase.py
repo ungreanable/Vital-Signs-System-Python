@@ -13,9 +13,9 @@ config = {
   "storageBucket": ""
 }
 
-def on_connect(client, userdeta, rc):
-    print("Connected to broker.hivemq.com with result code " + str(rc))
-	
+def on_connect(client, userdeta, flags, rc):
+    print("Connected to MQTT (broker.hivemq.com:1883) successful")
+
 client = mqtt.Client()
 client.on_connect = on_connect
 
@@ -28,8 +28,8 @@ if len(sys.argv) != 3:
 
 raspID = sys.argv[1] #"RaspberryPi_1"
 room = sys.argv[2] #"Room1"
-queryMonitorRoom = "Monitoring/{0}".format(room)
-queryRasp = "IoT/{0}/".format(raspID)
+queryMonitorRoom = "Monitoring/{}".format(room)
+queryRasp = "IoT/{}/".format(raspID)
 
 def getHeartRate():
     return(randrange(80, 120))
@@ -42,43 +42,45 @@ def monitorFirebase():
     t.start()
     getStatus_firebase = db.child(queryRasp + "RaspStatus").get().val()
     if(getStatus_firebase == "Active"):
-        all_sensors = db.child(queryRasp + "Sensor").get()
-        for sensor in all_sensors.each():
-            sensors = db.child(queryRasp + "Sensor/" + sensor.key() + "/Status").get()
-            if(sensors.val() == "Active"):
-                sensorName = db.child(queryRasp + "Sensor/" + sensor.key() + "/Name").get().val()
-                sensorID = db.child(queryRasp + "Sensor/" + sensor.key() + "/SensorID").get().val()
-                if(sensorName == "Heart Rate"):
+        all_sensors_firebase = db.child(queryRasp + "Sensor").get()
+        for sensor_firebase in all_sensors_firebase.each():
+            sensors_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/Status").get().val()
+            if(sensors_firebase == "Active"):
+                sensorName_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/Name").get().val()
+                sensorID_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/SensorID").get().val()
+                if(sensorName_firebase == "Heart Rate"):
                     heart = getHeartRate()
-                    data = {"SensorID": sensorID, "Type": str(sensorName), "Value": heart}
+                    data = {"SensorID": sensorID_firebase, "Type": str(sensorName_firebase), "Value": heart}
                     db.child(queryMonitorRoom).push(data)
-                elif(sensorName == "Body Temperature"):
+                elif(sensorName_firebase == "Body Temperature"):
                     temperature = getBodyTemperature()
-                    data = {"SensorID": sensorID, "Type": str(sensorName), "Value": temperature}
-                    db.child(queryMonitorRoom).push(data)
+                    data2 = {"SensorID": sensorID_firebase, "Type": str(sensorName_firebase), "Value": temperature}
+                    db.child(queryMonitorRoom).push(data2)
 
 def monitorMQTT():
     t2 = threading.Timer(1.0, monitorMQTT)
     t2.start()
     getStatus_mqtt = db.child(queryRasp + "RaspStatus").get().val()
     if(getStatus_mqtt == "Active"):
-        all_sensors = db.child(queryRasp + "Sensor").get()
-        for sensor in all_sensors.each():
-            sensors = db.child(queryRasp + "Sensor/" + sensor.key() + "/Status").get()
-            if(sensors.val() == "Active"):
-                sensorName = db.child(queryRasp + "Sensor/" + sensor.key() + "/Name").get().val()
-                sensorID = db.child(queryRasp + "Sensor/" + sensor.key() + "/SensorID").get().val()
-                sensorTopic = db.child(queryRasp + "Sensor/" + sensor.key() + "/Topic").get().val()
-                if(sensorName == "Heart Rate"):
+        all_sensors_mqtt = db.child(queryRasp + "Sensor").get()
+        for sensor_mqtt in all_sensors_mqtt.each():
+            sensors_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Status").get().val()
+            if(sensors_mqtt == "Active"):
+                sensorName_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Name").get().val()
+                sensorTopic_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Topic").get().val()
+                if(sensorName_mqtt == "Heart Rate"):
                     heart = getHeartRate()
-                    client.publish("{}".format(sensorTopic),heart)
-                elif(sensorName == "Body Temperature"):
+                    client.publish("{}".format(sensorTopic_mqtt),heart)
+                elif(sensorName_mqtt == "Body Temperature"):
                     temperature = getBodyTemperature()
-                    client.publish("{}".format(sensorTopic),temperature)
+                    client.publish("{}".format(sensorTopic_mqtt),temperature)
 
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
-monitorFirebase()
-monitorMQTT()
+print("========= Version : Beta =========")
 print("Smart eHealth System is running...")
+monitorFirebase()
+print("Firebase Monitor is running...")
+monitorMQTT()
+print("MQTT Monitor is running...")
 client.connect("broker.hivemq.com", 1883, 60)
