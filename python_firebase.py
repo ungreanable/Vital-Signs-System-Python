@@ -43,8 +43,7 @@ def monitorFirebase():
     t.start()
     getStatus_firebase = db.child(queryRasp + "RaspStatus").get().val()
     if(getStatus_firebase == "Active"):
-        all_sensors_firebase = db.child(queryRasp + "Sensor").get()
-        for sensor_firebase in all_sensors_firebase.each():
+        for sensor_firebase in db.child(queryRasp + "Sensor").get().each():
             sensors_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/Status").get().val()
             if(sensors_firebase == "Active"):
                 sensorName_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/Name").get().val()
@@ -63,8 +62,7 @@ def monitorMQTT():
     t2.start()
     getStatus_mqtt = db.child(queryRasp + "RaspStatus").get().val()
     if(getStatus_mqtt == "Active"):
-        all_sensors_mqtt = db.child(queryRasp + "Sensor").get()
-        for sensor_mqtt in all_sensors_mqtt.each():
+        for sensor_mqtt in db.child(queryRasp + "Sensor").get().each():
             sensors_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Status").get().val()
             if(sensors_mqtt == "Active"):
                 sensorName_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Name").get().val()
@@ -89,7 +87,7 @@ monitorMQTT()
 print("MQTT Monitor is running...")
 print("======================================")
 loading = True  # a simple var to keep the loading status
-loading_speed = 4  # number of characters to print out per second
+loading_speed = 3  # number of characters to print out per second
 loading_string = "." * 6  # characters to print out one by one (6 dots in this example)
 while loading:
     for index, char in enumerate(loading_string):
