@@ -23,14 +23,14 @@ client.on_connect = on_connect
 #client.username_pw_set("try","try")
 
 if len(sys.argv) != 3:
-    print("{} <RaspberryPi_x> <Room>".format(sys.argv[0]))
-    print("Ex. {} <RaspberryPi_1> <Room1>".format(sys.argv[0]))
+    print("{} <IoT_x> <Room>".format(sys.argv[0]))
+    print("Ex. {} <IoT_1> <Room1>".format(sys.argv[0]))
     sys.exit(1)
 
-raspID = sys.argv[1] #"RaspberryPi_1"
+IoTID = sys.argv[1] #"IoT_1"
 room = sys.argv[2] #"Room1"
 queryMonitorRoom = "Monitoring/{}".format(room)
-queryRasp = "IoT/{}/".format(raspID)
+queryIoT = "IoT/{}/".format(IoTID)
 
 def getHeartRate():
     return(randrange(80, 120))
@@ -41,13 +41,13 @@ def getBodyTemperature():
 def monitorFirebase():
     t = threading.Timer(5.0, monitorFirebase)
     t.start()
-    getStatus_firebase = db.child(queryRasp + "RaspStatus").get().val()
+    getStatus_firebase = db.child(queryIoT + "IoTStatus").get().val()
     if(getStatus_firebase == "Active"):
-        for sensor_firebase in db.child(queryRasp + "Sensor").get().each():
-            sensors_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/Status").get().val()
+        for sensor_firebase in db.child(queryIoT + "Sensor").get().each():
+            sensors_firebase = db.child(queryIoT + "Sensor/" + sensor_firebase.key() + "/Status").get().val()
             if(sensors_firebase == "Active"):
-                sensorName_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/Name").get().val()
-                sensorID_firebase = db.child(queryRasp + "Sensor/" + sensor_firebase.key() + "/SensorID").get().val()
+                sensorName_firebase = db.child(queryIoT + "Sensor/" + sensor_firebase.key() + "/Name").get().val()
+                sensorID_firebase = db.child(queryIoT + "Sensor/" + sensor_firebase.key() + "/SensorID").get().val()
                 if(sensorName_firebase == "Heart Rate"):
                     heart = getHeartRate()
                     data = {"SensorID": sensorID_firebase, "Type": str(sensorName_firebase), "Value": heart}
@@ -60,13 +60,13 @@ def monitorFirebase():
 def monitorMQTT():
     t2 = threading.Timer(1.0, monitorMQTT)
     t2.start()
-    getStatus_mqtt = db.child(queryRasp + "RaspStatus").get().val()
+    getStatus_mqtt = db.child(queryIoT + "IoTStatus").get().val()
     if(getStatus_mqtt == "Active"):
-        for sensor_mqtt in db.child(queryRasp + "Sensor").get().each():
-            sensors_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Status").get().val()
+        for sensor_mqtt in db.child(queryIoT + "Sensor").get().each():
+            sensors_mqtt = db.child(queryIoT + "Sensor/" + sensor_mqtt.key() + "/Status").get().val()
             if(sensors_mqtt == "Active"):
-                sensorName_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Name").get().val()
-                sensorTopic_mqtt = db.child(queryRasp + "Sensor/" + sensor_mqtt.key() + "/Topic").get().val()
+                sensorName_mqtt = db.child(queryIoT + "Sensor/" + sensor_mqtt.key() + "/Name").get().val()
+                sensorTopic_mqtt = db.child(queryIoT + "Sensor/" + sensor_mqtt.key() + "/Topic").get().val()
                 if(sensorName_mqtt == "Heart Rate"):
                     heart = getHeartRate()
                     client.publish("{}".format(sensorTopic_mqtt),heart)
