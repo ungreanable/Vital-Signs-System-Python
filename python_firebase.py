@@ -1,7 +1,6 @@
 #! /usr/bin/python
 
 import pyrebase
-import threading
 import sys
 import paho.mqtt.client as mqtt
 import datetime
@@ -16,36 +15,32 @@ config = {
 }
 
 def getHeartRate():
-    random = randrange(1,100)
-    if(random >= 1 and random <= 2):
-        return(randrange(35, 45))
-    elif(random >= 3 and random <= 4):
+    random = randrange(1,200)
+    if(random == 199):
+        return(randrange(35, 59))
+    elif(random == 200):
         return(randrange(140,180))
     else:
         return(randrange(60, 120))
 
-def getBloodPressure(type):
-    if(type == "top"):
-        random = randrange(1,100)
-        if(random == 1):
-            return(randrange(141,190))
-        else:
-            return(randrange(90,140))
-    elif(type == "bottom"):
-        random = randrange(1,100)
-        if(random == 2):
-            return(randrange(41,59))
-        else:
-            return(randrange(60,100))     
+def getBloodPressure():
+    random = randrange(1,200)
+    if(random == 199):
+        bloodpressure = [randrange(70,90),randrange(40,60)]
+    elif(random == 200):
+        bloodpressure = [randrange(140,190),randrange(90,100)]
+    else:
+        bloodpressure = [randrange(91,119),randrange(61,80)]
+    return bloodpressure    
 
 def getBodyTemperature():
-    random = randrange(1,100)
-    if(random >= 1 and random <= 2):
-        return(round(uniform(34.0, 34.9),1))
-    elif(random >= 3 and random <= 4):
-        return(round(uniform(37.6, 41.5),1))
+    random = randrange(1,200)
+    if(random == 199):
+        return(round(uniform(35.0, 36.0),1))
+    elif(random == 200):
+        return(round(uniform(38.0, 41.0),1))
     else:
-        return(round(uniform(36.5, 37.5),1))
+        return(round(uniform(36.0, 37.5),1))
 
 def on_connect(client, userdeta, flags, rc):
     print("Connected to MQTT (broker.hivemq.com:1883) successful")
@@ -128,32 +123,42 @@ def monitorMQTT():
                 sensorTopic_mqtt = db.child("Sensor/" + sensor_mqtt.key() + "/Topic").get().val()
                 if(sensorName_mqtt == "Heart Rate"):
                     heart = getHeartRate()
-                    if( (heart >= 35 and heart <= 45) or (heart >= 140 and heart <= 180) ):
-                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "TypeName": "Abnormal Heart Rate", "Value": heart, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                    if(heart >= 35 and heart <= 59):
+                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "Description": "Bradycardia", "Value": heart, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                        db.child("Log").push(alertFirebase)
+                    elif(heart >= 140 and heart <= 180):
+                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "Description": "Tachycardia", "Value": heart, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                         db.child("Log").push(alertFirebase)
                     HRList.append(heart)
                     client.publish("{}".format(sensorTopic_mqtt),heart)
                 elif(sensorName_mqtt == "Body Temperature"):
                     bodytemp = getBodyTemperature()
-                    if( (bodytemp >= 34.0 and bodytemp <= 34.9) or (bodytemp >= 37.6 and bodytemp <= 41.5) ):
-                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "TypeName": "Abnormal Body Temperature", "Value": bodytemp, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                    if( bodytemp >= 35.0 and bodytemp <= 36.0 ):
+                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "Description": "Low-grade fever", "Value": bodytemp, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                        db.child("Log").push(alertFirebase)
+                    elif( bodytemp >= 38.0 and bodytemp <= 41.0 ):
+                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "Description": "High-grade fever", "Value": bodytemp, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                         db.child("Log").push(alertFirebase)
                     BTList.append(bodytemp)
                     client.publish("{}".format(sensorTopic_mqtt),bodytemp)
                 elif(sensorName_mqtt == "Blood Pressure"):
-                    top = getBloodPressure("top")
+                    bp = getBloodPressure()
+                    top = bp[0]
                     BP_TOP_List.append(top)
-                    bot = getBloodPressure("bottom")
+                    bot = bp[1]
                     BP_BOT_List.append(bot)
                     blood_pressure = "{}/{}".format(top,bot)
-                    if( (top >= 141 and top <= 190) or (bot >= 41 and bot <= 59) ):
-                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "TypeName": "Abnormal Blood Pressure", "Value": blood_pressure, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                    if(top >= 140 and top <= 190):
+                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "Description": "High Blood Pressure", "Value": blood_pressure, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+                        db.child("Log").push(alertFirebase)
+                    elif(top >= 70 and top <= 90):
+                        alertFirebase = {"Room": room, "Status": 0, "Type": "Alert", "Description": "Low Blood Pressure", "Value": blood_pressure, "LogDateTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                         db.child("Log").push(alertFirebase)
                     client.publish("{}".format(sensorTopic_mqtt),blood_pressure)
     except Exception as exception:
         name = repr(exception).split('(')[0]
         print(exception)
-        errorDataFirebase = {"Room": room, "Status": 0, "Type": "ErrorMQTT", "TypeName": name}
+        errorDataFirebase = {"Room": room, "Status": 0, "Type": "ErrorMQTT", "Description": name}
         db.child("Log").push(errorDataFirebase)
 
 if len(sys.argv) != 3:
@@ -180,8 +185,17 @@ print("MQTT Monitor is running...")
 print("==================================================")
 
 countToFirebase = datetime.datetime.now() + datetime.timedelta(minutes=1)
+loading_speed = 4  
+loading_string = "." * 6
 while True:
     monitorMQTT()
     if datetime.datetime.now() >= countToFirebase:
         countToFirebase = datetime.datetime.now() + datetime.timedelta(minutes=1)
         monitorFirebase()
+    for index, char in enumerate(loading_string):
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(1.0 / loading_speed) 
+    index += 1
+    sys.stdout.write("\b" * index + " " * index + "\b" * index)
+    sys.stdout.flush()
